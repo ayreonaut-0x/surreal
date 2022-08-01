@@ -59,7 +59,7 @@ template <typename BitsTp>
 requires(IsScopedEnum<BitsTp>::value) class Flags
 {
 public:
-    typedef FlagTraits<BitsTp>::MaskType MaskType;
+    typedef typename FlagTraits<BitsTp>::MaskType MaskType;
 
     constexpr Flags() : m_mask(MaskType(0)) {}
     constexpr Flags(BitsTp bit) : m_mask(MaskType(bit)) {}
