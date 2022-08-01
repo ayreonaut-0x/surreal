@@ -15,7 +15,7 @@ xcb_connection_t* LinuxWindow::s_connection{ nullptr };
 u32 LinuxWindow::s_window_count{ 0u };
 
 LinuxWindow::LinuxWindow(const std::string& title, WindowCreateFlags flags)
-    : Window(std::hash<std::string>()(title)), m_rect(), m_wid(static_cast<xcb_window_t>(-1)),
+    : Window(std::hash<std::string>()(title)), m_rect(), m_mouse_pos(), m_wid(static_cast<xcb_window_t>(-1)),
       m_atoms({ { s_wm_protocols_name, { static_cast<xcb_atom_t>(-1), XCB_ATOM_ATOM, 32 } },
                 { s_wm_delete_window_name, { static_cast<xcb_atom_t>(-1), XCB_ATOM_STRING, 8 } } })
 {
@@ -33,10 +33,11 @@ LinuxWindow::LinuxWindow(const std::string& title, WindowCreateFlags flags)
     const u32 half_window_width{ s_width / 2u };
     const u32 half_window_height{ s_height / 2u };
 
-    m_rect = (flags & WindowCreateFlagBits::Fullscreen)
-                 ? Rect{ { 0u, 0u }, { screen->width_in_pixels, screen->height_in_pixels } }
-                 : Rect{ { half_screen_width - half_window_width, half_screen_height - half_window_height },
-                         { s_width, s_height } };
+    if (flags & WindowCreateFlagBits::Fullscreen)
+        m_rect = { { 0u, 0u }, { screen->width_in_pixels, screen->height_in_pixels } };
+    else
+        m_rect = { { i32(half_screen_width - half_window_width), i32(half_screen_height - half_window_height) },
+                   { s_width, s_height } };
 
     constexpr u32 cw_mask{ XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK };
     const u32 cw_list[2]{ screen->black_pixel, XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
@@ -125,66 +126,81 @@ void LinuxWindow::hide() noexcept
 
 void LinuxWindow::on_client_message(xcb_client_message_event_t* client_message)
 {
-    for (auto phandler{ m_event_handlers.rbegin() }; phandler != m_event_handlers.rend(); ++phandler)
+    if (client_message->data.data32[0] == m_atoms[s_wm_delete_window_name].atom)
     {
-        auto handler{ *phandler };
-
-        if (client_message->data.data32[0] == m_atoms[s_wm_delete_window_name].atom)
+        WindowCloseEvent e{ m_id };
+        auto handler_iter{ m_event_handlers.rbegin() };
+        while (handler_iter != m_event_handlers.rend() && !e.handled)
         {
-            WindowCloseEvent e{ m_id };
-            (*handler)(e);
+            EventHandler* const& handler{ *handler_iter++ };
+            handler->on_event(e);
         }
     }
 }
 
 void LinuxWindow::on_configure_notify(xcb_configure_notify_event_t* config_notify)
 {
-    if (config_notify->window == m_wid)
-    {
-        m_rect.pos.x = config_notify->x;
-        m_rect.pos.y = config_notify->y;
-        m_rect.size.w = config_notify->width;
-        m_rect.size.h = config_notify->height;
+    m_rect.pos.x = config_notify->x;
+    m_rect.pos.y = config_notify->y;
+    m_rect.size.w = config_notify->width;
+    m_rect.size.h = config_notify->height;
 
-        for (auto phandler{ m_event_handlers.rbegin() }; phandler != m_event_handlers.rend(); ++phandler)
-        {
-            auto handler{ *phandler };
-            WindowResizeEvent s{ m_id, m_rect.size };
-            (*handler)(s);
-            WindowPositionEvent p{ m_id, m_rect.pos };
-            (*handler)(p);
-        }
+    WindowPositionEvent position_event{ m_id, m_rect.pos };
+    WindowResizeEvent size_event{ m_id, m_rect.size };
+    auto handler_iter{ m_event_handlers.rbegin() };
+    while (handler_iter != m_event_handlers.rend())
+    {
+        EventHandler* const& handler{ *handler_iter++ };
+        if (!position_event.handled)
+            handler->on_event(position_event);
+
+        if (!size_event.handled)
+            handler->on_event(size_event);
     }
 }
 
 void LinuxWindow::on_key_press(xcb_key_press_event_t* key_press)
 {
-    for (auto phandler{ m_event_handlers.rbegin() }; phandler != m_event_handlers.rend(); ++phandler)
+    KeyPressEvent e{ key_press->detail };
+    auto handler_iter{ m_event_handlers.rbegin() };
+    while (handler_iter != m_event_handlers.rend() && !e.handled)
     {
-        auto handler{ *phandler };
-        KeyPressEvent e{ key_press->detail };
-        (*handler)(e);
+        EventHandler* const& handler{ *handler_iter++ };
+        handler->on_event(e);
     }
 }
 
 void LinuxWindow::on_key_release(xcb_key_release_event_t* key_release)
 {
-    for (auto phandler{ m_event_handlers.rbegin() }; phandler != m_event_handlers.rend(); ++phandler)
+    KeyReleaseEvent e{ key_release->detail };
+    auto handler_iter{ m_event_handlers.rbegin() };
+    while (handler_iter != m_event_handlers.rend() && !e.handled)
     {
-        auto handler{ *phandler };
-        KeyReleaseEvent e{ key_release->detail };
-        (*handler)(e);
+        EventHandler* const& handler{ *handler_iter++ };
+        handler->on_event(e);
     }
 }
 
 void LinuxWindow::on_button_press(xcb_button_press_event_t* button_press)
 {
-    fmt::print("Button pressed: {}\n", button_press->detail);
+    MouseButtonPressEvent e{ button_press->detail };
+    auto handler_iter{ m_event_handlers.rbegin() };
+    while (handler_iter != m_event_handlers.rend() && !e.handled)
+    {
+        EventHandler* const& handler{ *handler_iter++ };
+        handler->on_event(e);
+    }
 }
 
 void LinuxWindow::on_button_release(xcb_button_release_event_t* button_release)
 {
-    fmt::print("Button released: {}\n", button_release->detail);
+    MouseButtonReleaseEvent e{ button_release->detail };
+    auto handler_iter{ m_event_handlers.rbegin() };
+    while (handler_iter != m_event_handlers.rend() && !e.handled)
+    {
+        EventHandler* const& handler{ *handler_iter++ };
+        handler->on_event(e);
+    }
 }
 
 } // namespace Surreal

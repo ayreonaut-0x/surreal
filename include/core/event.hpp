@@ -35,6 +35,9 @@ enum struct EventType : u32
 {
     KeyPress,
     KeyRelease,
+    MouseButtonPress,
+    MouseButtonRelease,
+    MousePosition,
     WindowClose,
     WindowPosition,
     WindowResize,
@@ -113,27 +116,27 @@ public:
 class WindowPositionEvent final : public WindowEvent
 {
 public:
-    WindowPositionEvent(u64 id, Position pos) : WindowEvent(id), m_pos(pos) {}
+    WindowPositionEvent(u64 id, PositionI pos) : WindowEvent(id), m_pos(pos) {}
 
     SURREAL_DECLARE_EVENT_TYPE(WindowPosition);
 
-    constexpr const Position& get_position() const noexcept { return m_pos; }
+    constexpr const PositionI& get_position() const noexcept { return m_pos; }
 
 private:
-    Position m_pos;
+    PositionI m_pos;
 };
 
 class WindowResizeEvent final : public WindowEvent
 {
 public:
-    WindowResizeEvent(u64 id, Size size) : WindowEvent(id), m_size(size) {}
+    WindowResizeEvent(u64 id, SizeU size) : WindowEvent(id), m_size(size) {}
 
     SURREAL_DECLARE_EVENT_TYPE(WindowResize);
 
-    constexpr const Size& get_size() const noexcept { return m_size; }
+    constexpr const SizeU& get_size() const noexcept { return m_size; }
 
 private:
-    Size m_size;
+    SizeU m_size;
 };
 
 class EventDispatcher
@@ -186,16 +189,64 @@ public:
     SURREAL_DECLARE_EVENT_TYPE(KeyRelease);
 };
 
-class EventHandler
+class MouseEvent : public Event
+{
+public:
+    virtual ~MouseEvent() = default;
+
+    SURREAL_DECLARE_EVENT_CATEGORIES(EventCategoryFlagBits::Mouse);
+
+protected:
+    MouseEvent() = default;
+};
+
+class MouseButtonPressEvent final : public MouseEvent
+{
+public:
+    MouseButtonPressEvent(u32 button) : m_button(button) {}
+
+    SURREAL_DECLARE_EVENT_TYPE(MouseButtonPress);
+
+    constexpr u32 get_button() const noexcept { return m_button; }
+
+private:
+    u32 m_button;
+};
+
+class MouseButtonReleaseEvent final : public MouseEvent
+{
+public:
+    MouseButtonReleaseEvent(u32 button) : m_button(button) {}
+
+    SURREAL_DECLARE_EVENT_TYPE(MouseButtonRelease);
+
+    constexpr u32 get_button() const noexcept { return m_button; }
+
+private:
+    u32 m_button;
+};
+
+class MousePositionEvent final : public MouseEvent
+{
+public:
+    MousePositionEvent(f64 x, f64 y) : m_pos{ x, y } {}
+    MousePositionEvent(Position<f64> pos) : m_pos(pos) {}
+
+    SURREAL_DECLARE_EVENT_TYPE(MousePosition);
+
+    constexpr Position<f64> get_position() const noexcept { return m_pos; }
+
+private:
+    Position<f64> m_pos;
+};
+class SURREAL_API_EXPORT EventHandler
 {
 public:
     virtual ~EventHandler() = default;
 
-    virtual void operator()(KeyEvent&) = 0;
-    virtual void operator()(WindowEvent&) = 0;
-
-    // virtual void process_key_event(KeyEvent&) = 0;
-    // virtual void process_window_event(WindowEvent&) = 0;
+    virtual void on_event(KeyEvent&) = 0;
+    virtual void on_event(MouseEvent&) = 0;
+    virtual void on_event(WindowEvent&) = 0;
 
 protected:
     EventHandler() = default;

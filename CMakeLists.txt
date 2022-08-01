@@ -9,12 +9,12 @@ project(
 ## Project options
 
 option(SURREAL_USE_CXX23 "Enable experimental C++23 features if available (Default: OFF)" OFF)
-option(SURREAL_SHARED_BUILD "Build Surreal as a shared library object (Default: OFF)" ON)
+option(SURREAL_SHARED_BUILD "Build Surreal as a shared library object (Default: ON)" ON)
 if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
 	option(SURREAL_LTO_BUILD "Build Surreal with link-time optimization (Default: ON)" ON)
 	if(SURREAL_LTO_BUILD)
 		if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-			set(SURREAL_LTO_FLAGS -flto -fno-fat-lto-objects)
+			set(SURREAL_LTO_FLAGS -flto -fno-fat-lto-objects -fuse-linker-plugin)
 		elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 			set(SURREAL_LTO_FLAGS -flto=full)
 		endif()
@@ -46,10 +46,20 @@ FetchContent_Declare(
 	GIT_PROGRESS   ON
 )
 
+FetchContent_Declare(
+	spdlog
+	GIT_REPOSITORY https://github.com/gabime/spdlog.git
+	GIT_TAG        76fb40d95455f249bd70824ecfcae7a8f0930fa3
+	GIT_PROGRESS   ON
+)
+
 set(__old_build_type ${CMAKE_BUILD_TYPE})
 set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-FetchContent_MakeAvailable(fmtlib)
+set(FMT_SYSTEM_HEADERS ON)
+set(SPDLOG_FMT_EXTERNAL ON)
+set(SPDLOG_DISABLE_DEFAULT_LOGGER ON)
+FetchContent_MakeAvailable(fmtlib spdlog)
 set(CMAKE_BUILD_TYPE ${__old_build_type})
 unset(__old_build_type)
 
@@ -58,22 +68,16 @@ if(GENERATOR_IS_MULTI_CONFIG)
 	set(CMAKE_DEFAULT_BUILD_TYPE OptimizedDebug)
 endif()
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-	set(SURREAL_CXXFLAGS -ggdb -Wall -Wextra -Wpedantic -Wshadow -Wconversion)
-elseif(CMAKE_BUILD_TYPE STREQUAL "OptimizedDebug")
-	set(SURREAL_CXXFLAGS -ggdb -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion)
-	if(SURREAL_LTO_BUILD)
-		set(SURREAL_CXXFLAGS ${SURREAL_CXXFLAGS} ${SURREAL_LTO_FLAGS})
-	endif()
-elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
-	set(SURREAL_CXXFLAGS -O3 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -fgraphite -fgraphite-identity -floop-interchange -floop-nest-optimize -fno-plt -fdevirtualize-at-ltrans -fipa-pta)
-	add_compile_definitions(NDEBUG)
-	if(SURREAL_LTO_BUILD)
-		set(SURREAL_CXXFLAGS ${SURREAL_CXXFLAGS} ${SURREAL_LTO_FLAGS})
-	endif()
-else()
-	message(FATAL_ERROR "Invalid build type specified. Expected \"Debug\", \"OptimizedDebug\" or \"Release\", got ${CMAKE_BUILD_TYPE}.")
-endif()
+set(
+	SURREAL_CXXFLAGS
+	$<$<NOT:$<CONFIG:Debug>>:-ggdb>
+	$<$<CONFIG:OptimizedDebug>:-O2>
+	$<$<CONFIG:Release>:-O3>
+	-Wall -Wextra -Wpedantic -Wshadow -Wconversion
+	$<$<BOOL:SURREAL_SHARED_BUILD>:-fvisibility=hidden>
+	$<$<CONFIG:Release>:-fgraphite -fgraphite-identity -floop-interchange -floop-nest-optimize -fno-plt -fdevirtualize-at-ltrans -fipa-pta>
+	$<$<AND:$<NOT:$<CONFIG:Debug>>,$<BOOL:SURREAL_LTO_BUILD>>:${SURREAL_LTO_FLAGS}>
+)
 
 ## End Project options
 
@@ -138,11 +142,11 @@ if(GENERATOR_IS_MULTI_CONFIG)
 	)
 endif()
 
-add_dependencies(surreal fmt::fmt)
+add_dependencies(surreal fmt::fmt spdlog::spdlog)
 target_compile_options(surreal BEFORE PUBLIC ${SURREAL_CXXFLAGS})
-target_include_directories(surreal PRIVATE ${__CSD__}/include ${FMT_SOURCE_DIR}/${FMT_INC_DIR})
+target_include_directories(surreal PRIVATE ${__CSD__}/include ${FMT_SOURCE_DIR}/${FMT_INC_DIR} ${spdlog_SOURCE_DIR}/include)
 target_include_directories(surreal INTERFACE ${__CSD__}/include)
-target_link_libraries(surreal PRIVATE ${surreal_XCB_DEPS} fmt::fmt)
+target_link_libraries(surreal PRIVATE ${surreal_XCB_DEPS} fmt::fmt spdlog::spdlog)
 
 add_executable(test main.cpp)
 add_dependencies(test surreal)

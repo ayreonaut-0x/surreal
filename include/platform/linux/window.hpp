@@ -21,9 +21,9 @@ public:
     LinuxWindow(const std::string& title, WindowCreateFlags);
     ~LinuxWindow() override;
 
-    constexpr Size get_size() const noexcept override { return m_rect.size; }
-    constexpr Position get_position() const noexcept override { return m_rect.pos; }
-    constexpr Rect get_rect() const noexcept override { return m_rect; }
+    constexpr SizeType get_size() const noexcept override { return m_rect.size; }
+    constexpr PositionType get_position() const noexcept override { return m_rect.pos; }
+    constexpr RectType get_rect() const noexcept override { return m_rect; }
 
     void on_update() override;
 
@@ -31,7 +31,8 @@ public:
     void hide() noexcept override;
 
 private:
-    Rect m_rect;
+    RectType m_rect;
+    Position<f64> m_mouse_pos;
     xcb_window_t m_wid;
 
     struct Atom

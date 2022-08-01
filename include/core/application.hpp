@@ -7,7 +7,7 @@
 namespace Surreal
 {
 
-class Application : public EventHandler
+class SURREAL_API_EXPORT Application : public EventHandler
 {
 public:
     Application();
@@ -17,8 +17,9 @@ public:
 
     void on_update(float delta_time);
 
-    void operator()(KeyEvent&) override;
-    void operator()(WindowEvent&) override;
+    void on_event(KeyEvent&) override;
+    void on_event(MouseEvent&) override;
+    void on_event(WindowEvent&) override;
 
     // void process_key_event(KeyEvent&) override;
     // void process_window_event(WindowEvent&) override;

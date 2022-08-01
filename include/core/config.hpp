@@ -25,8 +25,9 @@
         #else
             #define SURREAL_NORETURN
         #endif
-
     #endif
+
+    #define SURREAL_API_EXPORT __attribute__((visibility("default")))
 
     #ifdef __has_cpp_attribute
         #if __has_cpp_attribute(maybe_unused)

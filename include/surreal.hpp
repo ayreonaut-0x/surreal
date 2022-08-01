@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/application.hpp>
+#include <core/log.hpp>
 #include <core/window.hpp>
 
 #define SURREAL_DEFINE_APP_ENTRY(app_class)                                                                            \
@@ -9,6 +10,8 @@
                                                                                                                        \
     int main()                                                                                                         \
     {                                                                                                                  \
+        Surreal::Log::init();                                                                                          \
+                                                                                                                       \
         auto app = new app_class();                                                                                    \
         app->run();                                                                                                    \
         delete app;                                                                                                    \

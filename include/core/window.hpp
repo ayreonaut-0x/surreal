@@ -37,16 +37,20 @@ public:
     explicit WindowError(const std::string& msg) : RuntimeError(msg) {}
 };
 
-class Window
+class SURREAL_API_EXPORT Window
 {
 public:
+    typedef Position<i32> PositionType;
+    typedef Size<u32> SizeType;
+    typedef Rect<PositionType, SizeType> RectType;
+
     virtual ~Window() = default;
 
     void push_event_handler(EventHandler* eh) { m_event_handlers.emplace_back(eh); }
 
-    virtual constexpr Size get_size() const noexcept = 0;
-    virtual constexpr Position get_position() const noexcept = 0;
-    virtual constexpr Rect get_rect() const noexcept = 0;
+    virtual constexpr SizeType get_size() const noexcept = 0;
+    virtual constexpr PositionType get_position() const noexcept = 0;
+    virtual constexpr RectType get_rect() const noexcept = 0;
 
     virtual void on_update() = 0;
     virtual void show() noexcept = 0;

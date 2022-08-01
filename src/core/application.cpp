@@ -1,4 +1,5 @@
 #include <core/application.hpp>
+#include <core/log.hpp>
 
 #if SURREAL_PLATFORM_LINUX
     #include <platform/linux/window.hpp>
@@ -15,6 +16,8 @@ Application* Application::s_instance{ nullptr };
 
 Application::Application() : m_should_quit(false), m_window(nullptr)
 {
+    SURREAL_ASSERT(!s_instance && "Application instance already exists.");
+    SURREAL_LOG_INFO("Initializing Surreal application...");
     s_instance = this;
 }
 
@@ -53,7 +56,7 @@ void Application::run()
 
 void Application::on_update(SURREAL_UNUSED(float, delta_time)) {}
 
-void Application::operator()(KeyEvent& ke)
+void Application::on_event(KeyEvent& ke)
 {
     if (ke.get_type() == EventType::KeyPress)
     {
@@ -67,40 +70,16 @@ void Application::operator()(KeyEvent& ke)
     }
 }
 
-void Application::operator()(WindowEvent& we)
+void Application::on_event(MouseEvent&) {}
+
+void Application::on_event(WindowEvent& we)
 {
     if (we.get_type() == EventType::WindowClose)
     {
         auto& wc{ static_cast<WindowCloseEvent&>(we) };
         m_should_quit = true;
         wc.handled = true;
-        return;
     }
 }
-
-// void Application::process_key_event(KeyEvent& ke)
-// {
-//     if (ke.get_type() == EventType::KeyPress)
-//     {
-//         auto& kp{ static_cast<KeyPressEvent&>(ke) };
-//         if (kp.get_key() == 9)
-//         {
-//             m_should_quit = true;
-//             kp.handled = true;
-//             return;
-//         }
-//     }
-// }
-
-// void Application::process_window_event(WindowEvent& we)
-// {
-//     if (we.get_type() == EventType::WindowClose)
-//     {
-//         auto& wc{ static_cast<WindowCloseEvent&>(we) };
-//         m_should_quit = true;
-//         wc.handled = true;
-//         return;
-//     }
-// }
 
 } // namespace Surreal
