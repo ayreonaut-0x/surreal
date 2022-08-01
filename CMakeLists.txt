@@ -70,7 +70,7 @@ endif()
 
 set(
 	SURREAL_CXXFLAGS
-	$<$<NOT:$<CONFIG:Debug>>:-ggdb>
+	$<$<NOT:$<CONFIG:Release>>:-ggdb>
 	$<$<CONFIG:OptimizedDebug>:-O2>
 	$<$<CONFIG:Release>:-O3>
 	-Wall -Wextra -Wpedantic -Wshadow -Wconversion
