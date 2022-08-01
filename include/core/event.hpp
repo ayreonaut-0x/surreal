@@ -164,7 +164,7 @@ public:
 
     constexpr u32 get_key() const noexcept { return m_key; }
 
-    std::string to_string() const noexcept { return fmt::format("{}: {}", get_name(), m_key); }
+    std::string to_string() const noexcept override { return fmt::format("{}: {}", get_name(), m_key); }
 
 protected:
     KeyEvent(u32 key) : m_key(key) {}
