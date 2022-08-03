@@ -27,7 +27,11 @@
         #endif
     #endif
 
-    #define SURREAL_API_EXPORT __attribute__((visibility("default")))
+    #ifdef SURREAL_BUILD_DLL
+        #define SURREAL_API __attribute__((visibility("default")))
+    #else
+        #define SURREAL_API
+    #endif
 
     #ifdef __has_cpp_attribute
         #if __has_cpp_attribute(maybe_unused)

@@ -10,9 +10,17 @@
                                                                                                                        \
     int main()                                                                                                         \
     {                                                                                                                  \
-        Surreal::Log::init();                                                                                          \
+        try                                                                                                            \
+        {                                                                                                              \
+            Surreal::Log::init();                                                                                      \
                                                                                                                        \
-        auto app = new app_class();                                                                                    \
-        app->run();                                                                                                    \
-        delete app;                                                                                                    \
+            auto app = new app_class();                                                                                \
+            app->run();                                                                                                \
+            delete app;                                                                                                \
+        }                                                                                                              \
+        catch (const Surreal::Exception& e)                                                                            \
+        {                                                                                                              \
+            SURREAL_LOG_ERROR("{}", e.what());                                                                         \
+            return -1;                                                                                                 \
+        }                                                                                                              \
     }

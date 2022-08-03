@@ -37,7 +37,7 @@ public:
     explicit WindowError(const std::string& msg) : RuntimeError(msg) {}
 };
 
-class SURREAL_API_EXPORT Window
+class SURREAL_API Window
 {
 public:
     typedef Position<i32> PositionType;

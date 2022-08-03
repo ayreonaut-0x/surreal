@@ -29,14 +29,13 @@ Application::~Application()
 void Application::run()
 {
     typedef std::chrono::high_resolution_clock Clock;
-    typedef std::chrono::duration<float> Seconds;
+    typedef std::chrono::duration<f32> Seconds;
 
 #if SURREAL_PLATFORM_LINUX
     m_window = new LinuxWindow("Titan Application", WindowCreateFlagBits::VSync);
 #endif
     m_window->push_event_handler(this);
 
-    float elapsed_time{ 0.0f };
     auto start_time{ Clock::now() };
 
     while (!m_should_quit)
@@ -47,14 +46,13 @@ void Application::run()
         on_update(delta_time.count());
         m_window->on_update();
 
-        elapsed_time += delta_time.count();
         start_time = end_time;
     }
 
     delete m_window;
 }
 
-void Application::on_update(SURREAL_UNUSED(float, delta_time)) {}
+void Application::on_update(SURREAL_UNUSED(f32, delta_time)) {}
 
 void Application::on_event(KeyEvent& ke)
 {

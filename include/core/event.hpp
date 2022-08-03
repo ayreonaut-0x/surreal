@@ -239,7 +239,7 @@ public:
 private:
     Position<f64> m_pos;
 };
-class SURREAL_API_EXPORT EventHandler
+class SURREAL_API EventHandler
 {
 public:
     virtual ~EventHandler() = default;

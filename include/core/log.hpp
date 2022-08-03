@@ -4,18 +4,20 @@
 
 #include <spdlog/spdlog.h>
 
+#include <spdlog/async_logger.h>
+
 namespace Surreal
 {
 
-class SURREAL_API_EXPORT Log
+class SURREAL_API Log
 {
 public:
-    static constexpr std::shared_ptr<spdlog::logger>& get() noexcept { return s_logger; }
+    static constexpr std::shared_ptr<spdlog::async_logger>& get() noexcept { return s_logger; }
 
     static void init();
 
 private:
-    static std::shared_ptr<spdlog::logger> s_logger;
+    static std::shared_ptr<spdlog::async_logger> s_logger;
 };
 
 } // namespace Surreal
