@@ -1,39 +1,50 @@
 cmake_minimum_required(VERSION 3.23)
 
+if(GENERATOR_IS_MULTI_CONFIG)
+	set(CMAKE_DEFAULT_BUILD_TYPE RelWithDebInfo)
+endif()
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -ggdb" CACHE STRING "" FORCE)
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -ggdb" CACHE STRING "" FORCE)
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -fno-plt" CACHE STRING "" FORCE)
+
 project(
 	SURREAL
 	VERSION 0.1.0
 	DESCRIPTION "Framework for live-rendering applications."
+	HOMEPAGE_URL https://github.com/ayreonaut-0x/surreal
+	LANGUAGES CXX
 )
 
 ## Project options
 
 option(SURREAL_USE_CXX23 "Enable experimental C++23 features if available (Default: OFF)" OFF)
 option(SURREAL_SHARED_BUILD "Build Surreal as a shared library object (Default: ON)" ON)
-if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-	option(SURREAL_LTO_BUILD "Build Surreal with link-time optimization (Default: ON)" ON)
-	if(SURREAL_LTO_BUILD)
-		if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-			set(SURREAL_LTO_FLAGS -flto -fno-fat-lto-objects -fuse-linker-plugin)
-		elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-			set(SURREAL_LTO_FLAGS -flto=full)
-		endif()
-	endif()
-endif()
-
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_EXTENSIONS OFF)
+option(SURREAL_LTO_BUILD "Build Surreal with link-time optimization (Default: ON)" ON)
 
 if(SURREAL_USE_CXX23)
-message(STATUS "SURREAL_USE_CXX23 is set. Testing for cxx_std_23.")
-	list(FIND CMAKE_CXX_KNOWN_FEATURES cxx_std_23 __HAS_CXX23__)
-	if(__HAS_CXX23__)
+	list(FIND CMAKE_CXX_KNOWN_FEATURES cxx_std_23 has_cxx_std_23)
+	if(has_cxx_std_23)
 		set(CMAKE_CXX_STANDARD 23)
-	else()
-		message(STATUS "C++23 unsupported.")
 	endif()
 endif()
-message(STATUS "SURREAL_CPP_VERSION is set to ${CMAKE_CXX_STANDARD}.")
+
+if(SURREAL_SHARED_BUILD)
+	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
+
+if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug" AND SURREAL_LTO_BUILD)
+	include(CheckIPOSupported)
+	check_ipo_supported(RESULT has_ipo OUTPUT no_ipo_msg LANGUAGES CXX)
+	if(has_ipo)
+		set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+	else()
+		message(WARNING "${no_ipo_msg}")
+	endif()
+endif()
 
 set(__CSD__ "${CMAKE_CURRENT_SOURCE_DIR}")
 set(__DEP_DIR__ "${__CSD__}/external")
@@ -53,35 +64,17 @@ FetchContent_Declare(
 	GIT_PROGRESS   ON
 )
 
-set(__old_build_type ${CMAKE_BUILD_TYPE})
-set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(FMT_SYSTEM_HEADERS ON)
 set(SPDLOG_FMT_EXTERNAL ON)
 set(SPDLOG_DISABLE_DEFAULT_LOGGER ON)
 FetchContent_MakeAvailable(fmtlib spdlog)
-set(CMAKE_BUILD_TYPE ${__old_build_type})
-unset(__old_build_type)
-
-if(GENERATOR_IS_MULTI_CONFIG)
-	set(CMAKE_CONFIGURATION_TYPES Debug OptimizedDebug Release)
-	set(CMAKE_DEFAULT_BUILD_TYPE OptimizedDebug)
-endif()
 
 set(
 	SURREAL_CXXFLAGS
-	$<$<NOT:$<CONFIG:Release>>:-ggdb>
-	$<$<CONFIG:OptimizedDebug>:-O2>
-	$<$<CONFIG:Release>:-O3>
-	-Wall -Wextra -Wpedantic -Wshadow -Wconversion
-	$<$<BOOL:SURREAL_SHARED_BUILD>:-fvisibility=hidden>
-	$<$<CONFIG:Release>:-fgraphite -fgraphite-identity -floop-interchange -floop-nest-optimize -fno-plt -fdevirtualize-at-ltrans -fipa-pta>
-	$<$<AND:$<NOT:$<CONFIG:Debug>>,$<BOOL:SURREAL_LTO_BUILD>>:${SURREAL_LTO_FLAGS}>
+	-pedantic -Wall -Wextra -Wshadow -Wconversion
 )
 
 ## End Project options
-
-add_compile_definitions(SURREAL_CPP_VERSION=${CMAKE_CXX_STANDARD})
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 	add_compile_definitions(SURREAL_PLATFORM_LINUX=1)
@@ -117,12 +110,15 @@ if(SURREAL_SHARED_BUILD)
 		surreal
 		SHARED
 	)
+	target_compile_definitions(surreal PUBLIC SURREAL_BUILD_DLL)
+	target_compile_options(surreal PRIVATE -fvisibility=hidden)
 else()
 	add_library(
 		surreal
 		STATIC
 	)
 endif()
+target_compile_definitions(surreal PRIVATE SURREAL_CPP_VERSION=${CMAKE_CXX_STANDARD})
 
 file(GLOB_RECURSE surreal_SOURCES "${__CSD__}/src/core/*.cpp")
 file(GLOB_RECURSE surreal_platform_SOURCES "${__PLATFORM_SRC_DIR__}/*.cpp")
