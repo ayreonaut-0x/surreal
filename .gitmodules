@@ -1,6 +1,8 @@
 [submodule "external/fmt"]
 	path = external/fmt
 	url = https://github.com/fmtlib/fmt.git
+	branch = c4ee726532178e556d923372f29163bd206d7732
 [submodule "external/spdlog"]
 	path = external/spdlog
 	url = https://github.com/gabime/spdlog.git
+	branch = 76fb40d95455f249bd70824ecfcae7a8f0930fa3

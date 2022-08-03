@@ -49,30 +49,14 @@ endif()
 set(__CSD__ "${CMAKE_CURRENT_SOURCE_DIR}")
 set(__DEP_DIR__ "${__CSD__}/external")
 
-include(FetchContent)
-FetchContent_Declare(
-	fmtlib
-	GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-	GIT_TAG        c4ee726532178e556d923372f29163bd206d7732
-	GIT_PROGRESS   ON
-)
-
-FetchContent_Declare(
-	spdlog
-	GIT_REPOSITORY https://github.com/gabime/spdlog.git
-	GIT_TAG        76fb40d95455f249bd70824ecfcae7a8f0930fa3
-	GIT_PROGRESS   ON
-)
-
 set(FMT_SYSTEM_HEADERS ON)
+add_subdirectory(external/fmt)
+
 set(SPDLOG_FMT_EXTERNAL ON)
 set(SPDLOG_DISABLE_DEFAULT_LOGGER ON)
-FetchContent_MakeAvailable(fmtlib spdlog)
+add_subdirectory(external/spdlog)
 
-set(
-	SURREAL_CXXFLAGS
-	-pedantic -Wall -Wextra -Wshadow -Wconversion
-)
+set(SURREAL_CXXFLAGS -pedantic -Wall -Wextra -Wshadow -Wconversion)
 
 ## End Project options
 
